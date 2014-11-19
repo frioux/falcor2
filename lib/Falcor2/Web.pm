@@ -15,9 +15,16 @@ use XML::Atom::Feed;
 use XML::Atom::Entry;
 use XML::Atom::Content;
 use DateTime;
-
+use Plack::Middleware::Auth::Basic;
 
 sub dispatch_request {
+   '' => sub {
+      Plack::Middleware::Auth::Basic->new(
+         authenticator => sub ($u, $p, $e) {
+            "$u.$p" eq "$ENV{FALCOR_USER}.$ENV{FALCOR_PASS}"
+         }
+      )
+  },
    GET => sub {
       '/feed' => sub {
          my $f = io->file($ENV{REMIND_PATH});
