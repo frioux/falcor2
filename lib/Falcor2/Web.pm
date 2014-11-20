@@ -2,32 +2,97 @@ package Falcor2::Web;
 
 use 5.20.1;
 
-use experimental 'signatures', 'postderef';
-
 use Web::Simple;
 use warnings NONFATAL => 'all';
 no warnings::illegalproto;
 
+use experimental 'signatures', 'postderef';
+
 use IPC::System::Simple 'capture';
 use File::pushd;
-use IO::All;
 use XML::Atom::Feed;
 use XML::Atom::Entry;
 use XML::Atom::Content;
 use DateTime;
 use Plack::Middleware::Auth::Basic;
+use IO::Async::Timer::Absolute;
+use Net::Async::HTTP;
+use HTTP::Request::Common 'POST';
+
+with 'Falcor2::HasConfig';
+
+has _ua => (
+   is => 'ro',
+   default => sub ($self) {
+      my $http = Net::Async::HTTP->new( user_agent => 'Falcor v2' );
+
+      $self->_loop->add( $http );
+
+      return $http
+   },
+);
+
+has _loop => (
+   is => 'ro',
+   required => 1,
+   init_arg => 'loop',
+);
 
 sub dispatch_request {
-   '' => sub {
+   '' => sub ($self, $env) {
       Plack::Middleware::Auth::Basic->new(
          authenticator => sub ($u, $p, $e) {
-            "$u.$p" eq "$ENV{FALCOR_USER}.$ENV{FALCOR_PASS}"
+            $self->_config->verify_login($u, $p)
          }
       )
-  },
+   },
+   POST => sub {
+      '/reload' => sub ($self, $) {
+         my $f = $self->_config->remind_file;
+         my $_d = pushd($f->absolute->filepath);
+
+         for (capture('remind', '-n', $f->filename)) {
+            if (my ($y, $m, $d, $h, $mi, $p, $message) = (m((\d{4})/(\d\d)/(\d\d) (\d\d?):(\d\d)([ap])m PUSH (.+)$))) {
+               my $dt = DateTime->new(
+                  hour => $h + ($p eq 'p' ? 12 : 0),
+                  minute => $mi,
+                  year => $y,
+                  month => $m,
+                  day => $d,
+                  time_zone => 'local',
+               );
+               next if $dt < DateTime->now(time_zone => 'local');
+               print STDERR "enqueing $message\n";
+               $self->_loop->add(
+                  IO::Async::Timer::Absolute->new(
+                     time => $dt->epoch,
+
+                     on_expire => sub {
+                        print STDERR "sending $message\n";
+                        $self->_ua->do_request(
+                           on_response => sub ($response) {
+                              print STDERR "response to '$message': "
+                                 . $response->status_line . "\n";
+                           },
+                           request => POST 'https://api.pushover.net/1/messages.json', {
+                              message => $message,
+                              token => $self->_config->pushover_token,
+                              user => $self->_config->pushover_user,
+                           },
+                        )
+                     },
+                  )->start
+               );
+            }
+
+         };
+
+         [200, [ 'Content-type' => 'text' ], [ '' ]]
+      },
+   },
    GET => sub {
-      '/feed' => sub {
-         my $f = io->file($ENV{REMIND_PATH});
+      '/feed' => sub ($self, $env) {
+         my $f = $self->_config->remind_file;
          my $_d = pushd($f->absolute->filepath);
 
          my $feed = XML::Atom::Feed->new;
@@ -42,8 +107,8 @@ sub dispatch_request {
 
          [ 200, [ 'Content-type', 'application/atom+xml' ], [$feed->as_xml] ]
      },
-      '' => sub {
-         my $f = io->file($ENV{REMIND_PATH});
+      '' => sub ($self, $env) {
+         my $f = $self->_config->remind_file;
          my $_d = pushd($f->absolute->filepath);
          [ 200, [ 'Content-type', 'text/plain' ], [capture('remind', $f->filename) ] ]
      },
