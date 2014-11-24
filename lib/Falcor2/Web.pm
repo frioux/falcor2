@@ -24,7 +24,10 @@ with 'Falcor2::HasConfig';
 has _ua => (
    is => 'ro',
    default => sub ($self) {
-      my $http = Net::Async::HTTP->new( user_agent => 'Falcor v2' );
+      my $http = Net::Async::HTTP->new(
+         user_agent => 'Falcor v2',
+         timeout    => 180,
+      );
 
       $self->_loop->add( $http );
 
