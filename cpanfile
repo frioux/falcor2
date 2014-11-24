@@ -7,6 +7,7 @@ requires 'DateTime';
 requires 'Plack::Middleware::Auth::Basic';
 requires 'IO::Async';
 requires 'Net::Async::HTTP::Server::PSGI';
+requires 'Net::Async::HTTP';
 requires 'Authen::Passphrase';
 requires 'JSON::MaybeXS';
 requires 'Try::Tiny';
