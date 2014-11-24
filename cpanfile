@@ -6,6 +6,7 @@ requires 'XML::Atom';
 requires 'DateTime';
 requires 'Plack::Middleware::Auth::Basic';
 requires 'IO::Async';
+requires 'IO::Async::SSL';
 requires 'Net::Async::HTTP::Server::PSGI';
 requires 'Net::Async::HTTP';
 requires 'Authen::Passphrase';
