@@ -73,6 +73,9 @@ sub dispatch_request {
                      on_expire => sub {
                         print STDERR "sending $message\n";
                         $self->_ua->do_request(
+                           on_error    => sub ($message, @) {
+                              print STDERR " !! failure '$message'\n";
+                           },
                            on_response => sub ($response) {
                               print STDERR "response to '$message': "
                                  . $response->status_line . "\n";
