@@ -15,6 +15,7 @@ use XML::Atom::Entry;
 use XML::Atom::Content;
 use DateTime;
 use Plack::Middleware::Auth::Basic;
+use Plack::Middleware::HTTPExceptions;
 use IO::Async::Timer::Absolute;
 use Net::Async::HTTP;
 use HTTP::Request::Common 'POST';
@@ -42,6 +43,7 @@ has _loop => (
 );
 
 sub dispatch_request {
+   '' => sub { Plack::Middleware::HTTPExceptions->new },
    '' => sub ($self, $env) {
       Plack::Middleware::Auth::Basic->new(
          authenticator => sub ($u, $p, $e) {
