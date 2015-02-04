@@ -9,8 +9,6 @@ use Authen::Passphrase;
 
 use namespace::clean;
 
-use experimental 'signatures';
-
 has user => (
    is => 'ro',
    default => 'frew',
@@ -26,14 +24,14 @@ has password => (
    default => '$2a$13$Z80Lh2fzaUTuUb3wuuyRjubFtHV97FhpIEkWwBYdCDAxXihGK4EqW',
 );
 
-sub _verify_password ($self, $pass) {
-   Authen::Passphrase->from_crypt($self->password)->match($pass)
+sub _verify_password {
+   Authen::Passphrase->from_crypt(shift->password)->match(shift)
 }
 
-sub verify_login ($self, $u, $p) {
+sub verify_login {
    # silly and overengineered way to avoid side-channel timing attacks
-   my $u_eq = $u eq $self->user;
-   my $p_eq = $self->_verify_password($p);
+   my $u_eq = $_[1] eq $_[0]->user;
+   my $p_eq = $_[0]->_verify_password($_[2]);
    if (int rand 2) {
       $u_eq && $p_eq
    } else {
@@ -57,11 +55,11 @@ has remind_path => (
    },
 );
 
-sub remind_file ($self) { io->file($self->remind_path) }
+sub remind_file { io->file(shift->remind_path) }
 
-sub as_hash ($self) {
+sub as_hash {
    return {
-      map { $_ => $self->$_ }
+      map { $_ => $_[0]->$_ }
       qw(user password pushover_user pushover_token remind_path)
    }
 }

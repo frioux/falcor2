@@ -1,6 +1,6 @@
 package Falcor2::Util;
 
-use 5.20.1;
+use 5.18.2;
 use warnings;
 
 use Falcor2::ConfigLoader;

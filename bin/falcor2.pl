@@ -1,9 +1,7 @@
 #!/usr/bin/env perl
 
-use 5.20.1;
+use 5.18.2;
 use warnings;
-
-use experimental 'signatures';
 
 use IO::Async::Loop;
 use Net::Async::HTTP::Server::PSGI;
@@ -23,11 +21,11 @@ $handler->listen(
    host => '127.0.0.1',
    service => Falcor2::Util::config->port,
    socktype => 'stream',
-   on_listen_error => sub ($, $e, @) { die $e },
-   on_resolve_error => sub ($, $e, @) { die $e },
-   on_listen => sub ($s) {
-      print STDERR "listening on: " . $s->read_handle->sockhost .
-         ':' . $s->read_handle->sockport . "\n";
+   on_listen_error => sub { die $_[1] },
+   on_resolve_error => sub { die $_[1] },
+   on_listen => sub {
+      print STDERR "listening on: " . $_[0]->read_handle->sockhost .
+         ':' . $_[0]->read_handle->sockport . "\n";
    },
 );
 

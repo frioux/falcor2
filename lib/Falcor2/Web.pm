@@ -1,12 +1,10 @@
 package Falcor2::Web;
 
-use 5.20.1;
+use 5.18.2;
 
 use Web::Simple;
 use warnings NONFATAL => 'all';
 no warnings::illegalproto;
-
-use experimental 'signatures', 'postderef';
 
 use IPC::System::Simple 'capture';
 use File::pushd;
@@ -24,13 +22,13 @@ with 'Falcor2::HasConfig';
 
 has _ua => (
    is => 'ro',
-   default => sub ($self) {
+   default => sub {
       my $http = Net::Async::HTTP->new(
          user_agent => 'Falcor v2',
          timeout    => 180,
       );
 
-      $self->_loop->add( $http );
+      shift->_loop->add( $http );
 
       return $http
    },
@@ -43,16 +41,17 @@ has _loop => (
 );
 
 sub dispatch_request {
+   my $self = shift;
    '' => sub { Plack::Middleware::HTTPExceptions->new },
-   '' => sub ($self, $env) {
+   '' => sub {
       Plack::Middleware::Auth::Basic->new(
-         authenticator => sub ($u, $p, $e) {
-            $self->_config->verify_login($u, $p)
+         authenticator => sub {
+            $self->_config->verify_login($_[0], $_[1])
          }
       )
    },
    POST => sub {
-      '/reload' => sub ($self, $) {
+      '/reload' => sub {
          my $f = $self->_config->remind_file;
          my $_d = pushd($f->absolute->filepath);
 
@@ -75,12 +74,12 @@ sub dispatch_request {
                      on_expire => sub {
                         print STDERR "sending $message\n";
                         $self->_ua->do_request(
-                           on_error    => sub ($message, @) {
-                              print STDERR " !! failure '$message'\n";
+                           on_error    => sub {
+                              print STDERR " !! failure '$_[0]'\n";
                            },
-                           on_response => sub ($response) {
+                           on_response => sub {
                               print STDERR "response to '$message': "
-                                 . $response->status_line . "\n";
+                                 . $_[0]->status_line . "\n";
                            },
                            request => POST 'https://api.pushover.net/1/messages.json', {
                               message => $message,
@@ -99,7 +98,7 @@ sub dispatch_request {
       },
    },
    GET => sub {
-      '/feed' => sub ($self, $env) {
+      '/feed' => sub {
          my $f = $self->_config->remind_file;
          my $_d = pushd($f->absolute->filepath);
 
@@ -115,7 +114,7 @@ sub dispatch_request {
 
          [ 200, [ 'Content-type', 'application/atom+xml' ], [$feed->as_xml] ]
      },
-      '' => sub ($self, $env) {
+      '' => sub {
          my $f = $self->_config->remind_file;
          my $_d = pushd($f->absolute->filepath);
          [ 200, [ 'Content-type', 'text/plain' ], [capture('remind', $f->filename) ] ]
