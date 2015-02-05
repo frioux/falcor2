@@ -18,7 +18,7 @@ my $handler = Net::Async::HTTP::Server::PSGI->new(
 );
 $loop->add($handler);
 $handler->listen(
-   host => '127.0.0.1',
+   host => '0.0.0.0',
    service => Falcor2::Util::config->port,
    socktype => 'stream',
    on_listen_error => sub { die $_[1] },
