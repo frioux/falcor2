@@ -18,6 +18,7 @@ RUN env DEBIAN_FRONTEND=noninteractive apt-get update \
     libexpat1-dev      \
     libxml2-dev        \
     libssl-dev         \
+    openssl            \
     remind             \
     zlib1g-dev         \
  && carton install --deployment \
