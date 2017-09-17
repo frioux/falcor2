@@ -1,5 +1,5 @@
 FROM debian:8.0
-MAINTAINER Arthur Axel fREW Schmidt <frioux@gmail.com>
+MAINTAINER Arthur Axel fREW Schmidt <falcor2@afoolishmanifesto.com>
 
 VOLUME ["/opt/var"]
 EXPOSE 5000
